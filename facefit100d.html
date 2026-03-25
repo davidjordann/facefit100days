@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FaceFit 100D – Transformación Facial</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080810;
+    --bg2: #0f0f1a;
+    --bg3: #16162a;
+    --card: rgba(255,255,255,0.04);
+    --border: rgba(255,255,255,0.08);
+    --accent: #c77dff;
+    --accent2: #7b2ff7;
+    --gold: #ffd166;
+    --green: #06d6a0;
+    --red: #ef476f;
+    --blue: #4cc9f0;
+    --text: #f0eeff;
+    --muted: #8884a8;
+    --radius: 18px;
+    --glow: 0 0 40px rgba(199,125,255,0.15);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { height:100%; background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; overflow-x:hidden; }
+
+  /* ────── SCROLLBAR ────── */
+  ::-webkit-scrollbar { width:4px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--accent2); border-radius:4px; }
+
+  /* ────── NOISE TEXTURE ────── */
+  body::before {
+    content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity:0.5;
+  }
+
+  /* ────── GLOW ORB ────── */
+  .glow-orb {
+    position:fixed; width:500px; height:500px; border-radius:50%;
+    background: radial-gradient(circle, rgba(123,47,247,0.15) 0%, transparent 70%);
+    pointer-events:none; z-index:0; top:-100px; right:-100px;
+    animation: orbPulse 6s ease-in-out infinite;
+  }
+  .glow-orb2 {
+    position:fixed; width:400px; height:400px; border-radius:50%;
+    background: radial-gradient(circle, rgba(76,201,240,0.08) 0%, transparent 70%);
+    pointer-events:none; z-index:0; bottom:-100px; left:-100px;
+    animation: orbPulse 8s ease-in-out infinite reverse;
+  }
+  @keyframes orbPulse { 0%,100%{opacity:0.6;transform:scale(1)} 50%{opacity:1;transform:scale(1.1)} }
+
+  /* ────── PAGES ────── */
+  .page { display:none; position:relative; z-index:1; min-height:100vh; padding:24px 20px 40px; max-width:480px; margin:0 auto; }
+  .page.active { display:block; }
+
+  /* ────── AUTH PAGE ────── */
+  #page-auth {
+    display:flex; flex-direction:column; justify-content:center; align-items:center; min-height:100vh;
+  }
+  #page-auth.active { display:flex; }
+  .auth-logo { font-family:'Syne',sans-serif; font-size:40px; font-weight:800; background:linear-gradient(135deg,#c77dff,#4cc9f0); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:6px; }
+  .auth-sub { color:var(--muted); font-size:14px; margin-bottom:36px; }
+  .auth-card { background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:32px; width:100%; max-width:360px; box-shadow:var(--glow); }
+  .auth-tabs { display:flex; gap:4px; background:var(--bg2); border-radius:10px; padding:4px; margin-bottom:24px; }
+  .auth-tab { flex:1; text-align:center; padding:8px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:500; color:var(--muted); transition:all .3s; }
+  .auth-tab.active { background:var(--accent2); color:#fff; }
+  .form-group { margin-bottom:16px; }
+  .form-label { font-size:12px; color:var(--muted); margin-bottom:6px; display:block; letter-spacing:.5px; text-transform:uppercase; }
+  .form-input { width:100%; background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:12px 16px; color:var(--text); font-size:14px; font-family:inherit; transition:border-color .3s; outline:none; }
+  .form-input:focus { border-color:var(--accent); }
+  .btn { display:block; width:100%; padding:14px; border-radius:12px; border:none; cursor:pointer; font-family:'Syne',sans-serif; font-weight:700; font-size:15px; transition:all .3s; }
+  .btn-primary { background:linear-gradient(135deg,var(--accent2),var(--accent)); color:#fff; box-shadow:0 4px 20px rgba(123,47,247,0.4); }
+  .btn-primary:hover { transform:translateY(-2px); box-shadow:0 8px 30px rgba(123,47,247,0.5); }
+  .btn-primary:active { transform:translateY(0); }
+  .auth-error { color:var(--red); font-size:12px; margin-top:10px; text-align:center; min-height:16px; }
+
+  /* ────── NAV ────── */
+  .nav { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:480px; background:rgba(15,15,26,0.95); backdrop-filter:blur(20px); border-top:1px solid var(--border); display:flex; justify-content:space-around; padding:10px 0 16px; z-index:100; }
+  .nav-btn { display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; background:none; border:none; color:var(--muted); font-size:10px; font-family:inherit; transition:color .3s; padding:4px 16px; }
+  .nav-btn.active { color:var(--accent); }
+  .nav-btn .icon { font-size:22px; }
+
+  /* ────── DASHBOARD ────── */
+  .dash-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:28px; padding-top:8px; }
+  .dash-greeting { font-family:'Syne',sans-serif; font-size:22px; font-weight:800; }
+  .dash-greeting span { background:linear-gradient(135deg,var(--accent),var(--blue)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .logout-btn { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:6px 12px; color:var(--muted); cursor:pointer; font-size:12px; }
+
+  .streak-banner { background:linear-gradient(135deg,rgba(255,209,102,0.12),rgba(239,71,111,0.08)); border:1px solid rgba(255,209,102,0.2); border-radius:var(--radius); padding:16px 20px; margin-bottom:20px; display:flex; align-items:center; gap:12px; }
+  .streak-fire { font-size:36px; }
+  .streak-info h3 { font-family:'Syne',sans-serif; font-size:18px; font-weight:700; color:var(--gold); }
+  .streak-info p { font-size:12px; color:var(--muted); }
+
+  .progress-card { background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:20px; margin-bottom:20px; box-shadow:var(--glow); }
+  .progress-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .progress-title { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; color:var(--muted); letter-spacing:1px; text-transform:uppercase; }
+  .progress-day { font-family:'Syne',sans-serif; font-size:28px; font-weight:800; }
+  .progress-day span { font-size:16px; color:var(--muted); }
+  .progress-bar-wrap { background:var(--bg2); border-radius:999px; height:8px; overflow:hidden; }
+  .progress-bar-fill { height:100%; border-radius:999px; background:linear-gradient(90deg,var(--accent2),var(--accent)); transition:width .6s ease; }
+  .progress-pct { font-size:12px; color:var(--muted); margin-top:8px; text-align:right; }
+
+  .phase-badge { display:inline-block; padding:4px 12px; border-radius:999px; font-size:11px; font-weight:600; margin-bottom:16px; }
+  .phase-1 { background:rgba(76,201,240,0.15); color:var(--blue); border:1px solid rgba(76,201,240,0.3); }
+  .phase-2 { background:rgba(255,209,102,0.15); color:var(--gold); border:1px solid rgba(255,209,102,0.3); }
+  .phase-3 { background:rgba(239,71,111,0.15); color:var(--red); border:1px solid rgba(239,71,111,0.3); }
+
+  .big-start-btn { background:linear-gradient(135deg,var(--accent2),var(--accent)); border:none; border-radius:var(--radius); padding:20px; width:100%; cursor:pointer; font-family:'Syne',sans-serif; font-size:18px; font-weight:800; color:#fff; letter-spacing:.5px; box-shadow:0 8px 30px rgba(123,47,247,0.4); transition:all .3s; margin-bottom:20px; position:relative; overflow:hidden; }
+  .big-start-btn::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg,rgba(255,255,255,0.1),transparent); }
+  .big-start-btn:hover { transform:translateY(-3px); box-shadow:0 12px 40px rgba(123,47,247,0.5); }
+  .big-start-btn:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+  .big-start-btn .sub { font-size:12px; font-weight:400; opacity:0.8; display:block; margin-top:4px; }
+
+  .tip-card { background:linear-gradient(135deg,rgba(6,214,160,0.08),rgba(76,201,240,0.05)); border:1px solid rgba(6,214,160,0.2); border-radius:var(--radius); padding:16px 18px; margin-bottom:20px; }
+  .tip-label { font-size:10px; font-weight:600; color:var(--green); letter-spacing:1px; text-transform:uppercase; margin-bottom:6px; }
+  .tip-text { font-size:14px; line-height:1.6; }
+
+  /* Mini calendar */
+  .calendar-label { font-size:12px; color:var(--muted); margin-bottom:10px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; }
+  .calendar-grid { display:grid; grid-template-columns:repeat(10,1fr); gap:5px; }
+  .cal-day { aspect-ratio:1; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:600; }
+  .cal-day.done { background:linear-gradient(135deg,var(--accent2),var(--accent)); color:#fff; }
+  .cal-day.today { background:var(--bg3); border:2px solid var(--accent); color:var(--accent); }
+  .cal-day.future { background:var(--bg2); color:var(--muted); }
+  .cal-day.missed { background:rgba(239,71,111,0.15); color:var(--red); }
+
+  /* ────── TRAINING PAGE ────── */
+  .training-header { text-align:center; padding-top:8px; margin-bottom:24px; }
+  .training-day-label { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:2px; margin-bottom:4px; }
+  .training-title { font-family:'Syne',sans-serif; font-size:26px; font-weight:800; }
+  .training-phase { font-size:13px; color:var(--muted); margin-top:4px; }
+
+  /* Exercise steps */
+  .ex-progress { display:flex; justify-content:center; gap:6px; margin-bottom:24px; flex-wrap:wrap; }
+  .ex-dot { width:28px; height:6px; border-radius:3px; background:var(--bg3); transition:all .3s; }
+  .ex-dot.done { background:var(--green); }
+  .ex-dot.active { background:var(--accent); }
+
+  .ex-card { background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:24px; text-align:center; margin-bottom:20px; min-height:200px; display:flex; flex-direction:column; align-items:center; justify-content:center; box-shadow:var(--glow); }
+  .ex-emoji { font-size:60px; margin-bottom:12px; animation:bounce 2s ease-in-out infinite; }
+  @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  .ex-name { font-family:'Syne',sans-serif; font-size:22px; font-weight:700; margin-bottom:8px; }
+  .ex-zone { font-size:11px; color:var(--accent); background:rgba(199,125,255,0.1); padding:3px 10px; border-radius:999px; margin-bottom:12px; display:inline-block; }
+  .ex-instruction { font-size:14px; color:var(--muted); line-height:1.6; max-width:280px; }
+
+  /* Timer */
+  .timer-wrap { position:relative; width:160px; height:160px; margin:0 auto 24px; }
+  .timer-svg { transform:rotate(-90deg); }
+  .timer-bg { fill:none; stroke:var(--bg2); stroke-width:8; }
+  .timer-arc { fill:none; stroke:var(--accent); stroke-width:8; stroke-linecap:round; transition:stroke-dashoffset 1s linear; }
+  .timer-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .timer-time { font-family:'Syne',sans-serif; font-size:40px; font-weight:800; color:var(--text); }
+  .timer-label { font-size:11px; color:var(--muted); margin-top:-4px; }
+  .reps-display { font-family:'Syne',sans-serif; font-size:32px; font-weight:800; color:var(--accent); text-align:center; margin-bottom:8px; }
+  .reps-label { font-size:13px; color:var(--muted); text-align:center; margin-bottom:24px; }
+
+  .coach-bubble { background:rgba(199,125,255,0.08); border:1px solid rgba(199,125,255,0.2); border-radius:14px; padding:12px 16px; margin-bottom:20px; font-size:13px; line-height:1.6; color:var(--text); }
+  .coach-name { font-size:10px; color:var(--accent); font-weight:600; letter-spacing:1px; margin-bottom:4px; }
+
+  .controls { display:flex; gap:10px; margin-bottom:20px; }
+  .ctrl-btn { flex:1; padding:14px; border-radius:12px; border:none; cursor:pointer; font-family:'Syne',sans-serif; font-weight:700; font-size:14px; transition:all .3s; }
+  .ctrl-start { background:linear-gradient(135deg,var(--accent2),var(--accent)); color:#fff; box-shadow:0 4px 20px rgba(123,47,247,0.3); }
+  .ctrl-pause { background:var(--bg3); border:1px solid var(--border); color:var(--text); }
+  .ctrl-next { background:var(--bg3); border:1px solid var(--border); color:var(--text); }
+  .ctrl-btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+  .complete-overlay { display:none; position:fixed; inset:0; background:rgba(8,8,16,0.95); z-index:200; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:40px; }
+  .complete-overlay.show { display:flex; }
+  .complete-emoji { font-size:80px; margin-bottom:20px; animation:popIn .5s cubic-bezier(.36,.07,.19,.97) both; }
+  @keyframes popIn { 0%{transform:scale(0)} 80%{transform:scale(1.1)} 100%{transform:scale(1)} }
+  .complete-title { font-family:'Syne',sans-serif; font-size:32px; font-weight:800; margin-bottom:8px; background:linear-gradient(135deg,var(--accent),var(--gold)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .complete-sub { color:var(--muted); font-size:15px; margin-bottom:30px; line-height:1.6; }
+  .confetti-container { position:fixed; inset:0; pointer-events:none; overflow:hidden; }
+  .confetti-piece { position:absolute; width:10px; height:10px; top:-10px; animation:fall linear forwards; }
+  @keyframes fall { to { transform:translateY(110vh) rotate(720deg); opacity:0; } }
+
+  /* Rest screen */
+  .rest-card { background:linear-gradient(135deg,rgba(6,214,160,0.1),rgba(76,201,240,0.05)); border:1px solid rgba(6,214,160,0.25); border-radius:var(--radius); padding:24px; text-align:center; margin-bottom:20px; }
+  .rest-emoji { font-size:48px; margin-bottom:8px; }
+  .rest-title { font-family:'Syne',sans-serif; font-size:20px; font-weight:700; color:var(--green); margin-bottom:6px; }
+  .rest-next { font-size:13px; color:var(--muted); }
+
+  /* ────── PROGRESS PAGE ────── */
+  .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px; }
+  .stat-card { background:var(--bg3); border:1px solid var(--border); border-radius:14px; padding:16px; text-align:center; }
+  .stat-val { font-family:'Syne',sans-serif; font-size:28px; font-weight:800; }
+  .stat-label { font-size:11px; color:var(--muted); margin-top:2px; }
+  .stat-val.accent { color:var(--accent); }
+  .stat-val.gold { color:var(--gold); }
+  .stat-val.green { color:var(--green); }
+
+  .week-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:8px; }
+  .week-label { font-size:10px; color:var(--muted); text-align:center; }
+  .week-day { aspect-ratio:1; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; }
+  .week-day.done { background:linear-gradient(135deg,var(--accent2),var(--accent)); color:#fff; }
+  .week-day.today { border:2px solid var(--accent); color:var(--accent); background:transparent; }
+  .week-day.empty { background:var(--bg2); color:var(--muted); }
+
+  .history-list { display:flex; flex-direction:column; gap:8px; }
+  .history-item { background:var(--bg3); border:1px solid var(--border); border-radius:12px; padding:14px 16px; display:flex; justify-content:space-between; align-items:center; }
+  .history-day { font-family:'Syne',sans-serif; font-weight:700; }
+  .history-status { font-size:13px; }
+
+  /* ────── TIPS PAGE ────── */
+  .section-title { font-family:'Syne',sans-serif; font-size:18px; font-weight:800; margin-bottom:16px; }
+  .tip-list { display:flex; flex-direction:column; gap:10px; margin-bottom:24px; }
+  .tip-item { background:var(--bg3); border:1px solid var(--border); border-radius:14px; padding:16px; display:flex; gap:12px; align-items:flex-start; }
+  .tip-icon { font-size:24px; flex-shrink:0; }
+  .tip-content h4 { font-weight:600; font-size:14px; margin-bottom:4px; }
+  .tip-content p { font-size:13px; color:var(--muted); line-height:1.5; }
+
+  .mewing-card { background:linear-gradient(135deg,rgba(123,47,247,0.12),rgba(76,201,240,0.06)); border:1px solid rgba(123,47,247,0.25); border-radius:var(--radius); padding:20px; margin-bottom:20px; }
+  .mewing-title { font-family:'Syne',sans-serif; font-size:18px; font-weight:800; margin-bottom:4px; }
+  .mewing-sub { font-size:12px; color:var(--accent); margin-bottom:12px; }
+  .mewing-steps { display:flex; flex-direction:column; gap:10px; }
+  .mewing-step { display:flex; gap:10px; align-items:flex-start; font-size:13px; line-height:1.5; }
+  .mewing-step-num { background:var(--accent2); color:#fff; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; margin-top:2px; }
+
+  /* ────── PHOTO PAGE ────── */
+  .photo-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px; }
+  .photo-slot { background:var(--bg3); border:1px solid var(--border); border-radius:14px; aspect-ratio:3/4; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; position:relative; overflow:hidden; transition:border-color .3s; }
+  .photo-slot:hover { border-color:var(--accent); }
+  .photo-slot img { width:100%; height:100%; object-fit:cover; }
+  .photo-slot .placeholder { font-size:30px; margin-bottom:8px; }
+  .photo-slot .photo-label { font-size:12px; color:var(--muted); }
+  .photo-input { display:none; }
+
+  /* ────── ANIMATIONS ────── */
+  .fade-in { animation: fadeIn .4s ease forwards; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+  .shimmer { animation: shimmer 2s linear infinite; }
+  @keyframes shimmer { 0%{opacity:1} 50%{opacity:0.7} 100%{opacity:1} }
+
+  /* ────── PAGE BOTTOM PADDING ────── */
+  .page-content { padding-bottom: 90px; }
+
+  /* ────── SECTION HEADERS ────── */
+  .section-header { margin-bottom:16px; }
+  .section-header small { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+
+  /* completed day badge */
+  .day-done-msg { text-align:center; padding:24px; }
+  .day-done-msg .big-emoji { font-size:60px; margin-bottom:12px; }
+  .day-done-msg h3 { font-family:'Syne',sans-serif; font-size:20px; font-weight:800; margin-bottom:6px; color:var(--green); }
+  .day-done-msg p { font-size:14px; color:var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="glow-orb"></div>
+<div class="glow-orb2"></div>
+
+<!-- ────── AUTH ────── -->
+<div id="page-auth" class="page active">
+  <div class="auth-logo">FaceFit</div>
+  <div class="auth-sub">Transformación Facial · 100 Días</div>
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tab-login" onclick="switchTab('login')">Entrar</div>
+      <div class="auth-tab" id="tab-register" onclick="switchTab('register')">Crear cuenta</div>
+    </div>
+    <!-- Login -->
+    <div id="form-login">
+      <div class="form-group">
+        <label class="form-label">Usuario</label>
+        <input class="form-input" id="login-user" type="text" placeholder="Tu usuario" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contraseña</label>
+        <input class="form-input" id="login-pass" type="password" placeholder="Tu contraseña">
+      </div>
+      <button class="btn btn-primary" onclick="doLogin()">Entrar →</button>
+      <div class="auth-error" id="login-error"></div>
+    </div>
+    <!-- Register -->
+    <div id="form-register" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Nombre</label>
+        <input class="form-input" id="reg-name" type="text" placeholder="¿Cómo te llamas?">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Usuario</label>
+        <input class="form-input" id="reg-user" type="text" placeholder="Crea un usuario">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contraseña</label>
+        <input class="form-input" id="reg-pass" type="password" placeholder="Crea una contraseña">
+      </div>
+      <button class="btn btn-primary" onclick="doRegister()">Crear cuenta →</button>
+      <div class="auth-error" id="reg-error"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ────── MAIN APP ────── -->
+<div id="app" style="display:none">
+
+  <!-- DASHBOARD -->
+  <div id="page-dash" class="page active">
+    <div class="page-content">
+      <div class="dash-header">
+        <div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:2px">Hola de nuevo,</div>
+          <div class="dash-greeting">¡Hola, <span id="dash-name">—</span>! 👋</div>
+        </div>
+        <button class="logout-btn" onclick="doLogout()">Salir</button>
+      </div>
+
+      <!-- Streak -->
+      <div class="streak-banner fade-in">
+        <div class="streak-fire">🔥</div>
+        <div class="streak-info">
+          <h3 id="streak-val">0 días</h3>
+          <p>Racha actual · ¡No la rompas!</p>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div class="progress-card fade-in">
+        <div class="progress-header">
+          <span class="progress-title">Progreso</span>
+          <span class="progress-day" id="dash-day-num">1 <span>/ 100</span></span>
+        </div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="dash-bar" style="width:0%"></div>
+        </div>
+        <div class="progress-pct" id="dash-pct">0% completado</div>
+      </div>
+
+      <div id="dash-phase" class="phase-badge phase-1">🔵 FASE 1 – Activación</div>
+
+      <!-- Start button -->
+      <button class="big-start-btn" id="btn-start-today" onclick="goToTraining()">
+        💪 Iniciar Entrenamiento de Hoy
+        <span class="sub" id="start-btn-sub">Día 1 · ~10 minutos</span>
+      </button>
+
+      <!-- Tip of the day -->
+      <div class="tip-card fade-in">
+        <div class="tip-label">💡 Consejo del día</div>
+        <div class="tip-text" id="dash-tip">Cargando consejo...</div>
+      </div>
+
+      <!-- Mini calendar -->
+      <div class="progress-card fade-in">
+        <div class="calendar-label">📅 Tus 100 días</div>
+        <div class="calendar-grid" id="cal-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRAINING -->
+  <div id="page-train" class="page">
+    <div class="page-content">
+      <div class="training-header fade-in">
+        <div class="training-day-label" id="train-day-label">DÍA 1</div>
+        <div class="training-title" id="train-phase-name">Activación Facial</div>
+        <div class="training-phase" id="train-phase-sub">Fase 1 · Aprende la técnica</div>
+      </div>
+
+      <!-- Exercise dots -->
+      <div class="ex-progress" id="ex-dots"></div>
+
+      <!-- REST CARD (hidden by default) -->
+      <div class="rest-card fade-in" id="rest-card" style="display:none">
+        <div class="rest-emoji">😮‍💨</div>
+        <div class="rest-title">Descansa</div>
+        <div class="rest-next" id="rest-next-label">Siguiente: —</div>
+      </div>
+
+      <!-- Exercise card -->
+      <div class="ex-card fade-in" id="ex-card">
+        <div class="ex-emoji" id="ex-emoji">😶</div>
+        <div class="ex-name" id="ex-name">Cargando...</div>
+        <div class="ex-zone" id="ex-zone">—</div>
+        <div class="ex-instruction" id="ex-instruction">—</div>
+      </div>
+
+      <!-- Timer or Reps -->
+      <div id="timer-section">
+        <div class="timer-wrap" id="timer-wrap">
+          <svg class="timer-svg" width="160" height="160" viewBox="0 0 160 160">
+            <circle class="timer-bg" cx="80" cy="80" r="70"/>
+            <circle class="timer-arc" id="timer-arc" cx="80" cy="80" r="70" stroke-dasharray="439.8" stroke-dashoffset="0"/>
+          </svg>
+          <div class="timer-center">
+            <div class="timer-time" id="timer-display">0:30</div>
+            <div class="timer-label">segundos</div>
+          </div>
+        </div>
+      </div>
+      <div id="reps-section" style="display:none">
+        <div class="reps-display" id="reps-count">— REPS</div>
+        <div class="reps-label">Realiza las repeticiones a tu ritmo</div>
+      </div>
+
+      <!-- Coach bubble -->
+      <div class="coach-bubble fade-in">
+        <div class="coach-name">🎙️ COACH FACIAL</div>
+        <div id="coach-text">Prepárate para comenzar...</div>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls">
+        <button class="ctrl-btn ctrl-start" id="btn-ctrl-start" onclick="ctrlStart()">▶ Iniciar</button>
+        <button class="ctrl-btn ctrl-pause" id="btn-ctrl-pause" onclick="ctrlPause()" disabled>⏸ Pausar</button>
+        <button class="ctrl-btn ctrl-next" id="btn-ctrl-next" onclick="ctrlNext()" disabled>⏭ Siguiente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div id="page-progress" class="page">
+    <div class="page-content">
+      <div class="section-header">
+        <small>Tu avance</small>
+        <div class="section-title">📊 Progreso</div>
+      </div>
+      <div class="stats-grid fade-in">
+        <div class="stat-card">
+          <div class="stat-val accent" id="stat-completed">0</div>
+          <div class="stat-label">Días completados</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val gold" id="stat-streak">0 🔥</div>
+          <div class="stat-label">Racha actual</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val green" id="stat-pct">0%</div>
+          <div class="stat-label">Del programa</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="stat-left" style="color:var(--blue)">100</div>
+          <div class="stat-label">Días restantes</div>
+        </div>
+      </div>
+      <div class="progress-card fade-in">
+        <div class="calendar-label">📅 Esta semana</div>
+        <div class="week-grid" id="week-labels"></div>
+        <div class="week-grid" id="week-days"></div>
+      </div>
+      <div class="progress-card fade-in">
+        <div class="calendar-label">📋 Historial</div>
+        <div class="history-list" id="history-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TIPS -->
+  <div id="page-tips" class="page">
+    <div class="page-content">
+      <div class="section-header">
+        <small>Guía completa</small>
+        <div class="section-title">💡 Consejos & Técnicas</div>
+      </div>
+
+      <!-- Mewing -->
+      <div class="mewing-card fade-in">
+        <div class="mewing-title">🦷 Mewing – La técnica base</div>
+        <div class="mewing-sub">Técnica de postura lingual que redefine el perfil facial</div>
+        <div class="mewing-steps">
+          <div class="mewing-step"><div class="mewing-step-num">1</div>Cierra la boca suavemente con los dientes ligeramente tocándose.</div>
+          <div class="mewing-step"><div class="mewing-step-num">2</div>Lleva TODA la lengua al paladar superior (no solo la punta).</div>
+          <div class="mewing-step"><div class="mewing-step-num">3</div>Respira únicamente por la nariz.</div>
+          <div class="mewing-step"><div class="mewing-step-num">4</div>Mantén esta posición de forma continua durante el día.</div>
+          <div class="mewing-step"><div class="mewing-step-num">5</div>Resultados visibles entre 3 y 6 meses de práctica consistente.</div>
+        </div>
+      </div>
+
+      <!-- Nutrition tips -->
+      <div class="section-title" style="margin-bottom:12px">🥗 Nutrición Facial</div>
+      <div class="tip-list" id="full-tip-list"></div>
+
+      <!-- Exercise guide -->
+      <div class="section-title" style="margin-bottom:12px">💪 Guía de Ejercicios</div>
+      <div class="tip-list" id="ex-guide-list"></div>
+    </div>
+  </div>
+
+  <!-- PHOTOS -->
+  <div id="page-photos" class="page">
+    <div class="page-content">
+      <div class="section-header">
+        <small>Registro visual</small>
+        <div class="section-title">📸 Antes & Después</div>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">Guarda fotos de tu progreso. Todo se guarda localmente en tu dispositivo.</div>
+      <div class="photo-grid" id="photo-grid"></div>
+      <input type="file" accept="image/*" class="photo-input" id="photo-input">
+    </div>
+  </div>
+
+  <!-- NAV -->
+  <nav class="nav">
+    <button class="nav-btn active" id="nav-dash" onclick="showPage('dash')">
+      <span class="icon">🏠</span>Inicio
+    </button>
+    <button class="nav-btn" id="nav-train" onclick="showPage('train')">
+      <span class="icon">💪</span>Entrena
+    </button>
+    <button class="nav-btn" id="nav-progress" onclick="showPage('progress')">
+      <span class="icon">📊</span>Progreso
+    </button>
+    <button class="nav-btn" id="nav-tips" onclick="showPage('tips')">
+      <span class="icon">💡</span>Guía
+    </button>
+    <button class="nav-btn" id="nav-photos" onclick="showPage('photos')">
+      <span class="icon">📸</span>Fotos
+    </button>
+  </nav>
+</div>
+
+<!-- COMPLETE OVERLAY -->
+<div class="complete-overlay" id="complete-overlay">
+  <div class="confetti-container" id="confetti-container"></div>
+  <div class="complete-emoji">🎉</div>
+  <div class="complete-title" id="complete-title">¡Día completado!</div>
+  <div class="complete-sub" id="complete-sub">Increíble esfuerzo. Tu constancia está transformando tu rostro.</div>
+  <button class="btn btn-primary" onclick="closeComplete()" style="max-width:260px">Ver mi progreso →</button>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// DATA
+// ─────────────────────────────────────────────
+const TIPS = [
+  "💧 Bebe 2 a 3 litros de agua hoy. La deshidratación infla el rostro y retiene líquidos.",
+  "🧂 Reduce el sodio: la sal retiene agua en la cara. Evita sal añadida todo el día.",
+  "🍌 Come más potasio: banano, aguacate, espinaca. Contrarresta la retención de líquidos.",
+  "🍷 Evita el alcohol hoy: deshidrata y provoca inflamación facial notable.",
+  "😴 Duerme 7-8 horas boca arriba para que los líquidos no se acumulen en la cara.",
+  "🥩 Consume proteína en cada comida: mantiene masa muscular y ayuda a la saciedad.",
+  "🍬 Reduce azúcar refinada: causa inflamación sistémica visible en el rostro.",
+  "🍋 Agua con limón en ayunas: desintoxica, mejora la digestión y reduce hinchazón.",
+  "🥦 Verduras ricas en agua: pepino, apio, lechuga. Hidratan desde adentro.",
+  "☕ El café puede inflamar si hay intolerancia. Observa cómo reacciona tu rostro.",
+  "🐟 Omega-3 del salmón y las nueces reducen inflamación general del cuerpo.",
+  "🫐 Antioxidantes de arándanos y fresas combaten el envejecimiento facial.",
+  "🧘 Practica mewing todo el día: lengua al paladar, respiración nasal.",
+  "🪑 Revisa tu postura: la mala postura empeora la papada. Espalda recta, mentón hacia atrás.",
+  "🥗 Mastica bien los alimentos: activa los músculos faciales de forma natural.",
+  "🌙 Duerme sin almohada alta o de lado: evita que se forme doble mentón.",
+  "🌿 Té verde: antioxidante y antiinflamatorio. Sustituye el café hoy.",
+  "🍳 Colágeno: huevos, caldo de huesos, vitamina C. Mejora elasticidad facial.",
+  "🫀 Cardiovascular suave hoy: 30 min de caminata acelera la pérdida de grasa general.",
+  "😤 Respira por la nariz siempre: mejora la estructura facial a largo plazo.",
+  "🛁 Masaje facial con agua fría al despertar: activa circulación y reduce hinchazón.",
+  "🚭 Evitar el tabaco es esencial: destruye el colágeno y envejece la piel.",
+  "🥛 Limita los lácteos si notas que te inflaman la cara: prueba leches vegetales.",
+  "⏱️ Intermitent fasting (16:8): ayuda a reducir grasa corporal total, incluyendo rostro.",
+  "🌾 Elige carbohidratos complejos: avena, arroz integral. Sin harinas refinadas hoy.",
+  "🧊 Aplica cubos de hielo en cachetes por 2 minutos: vasoconstricción y definición.",
+  "🫁 Respiración diafragmática: reduce cortisol, que acumula grasa facial.",
+  "💊 Vitamina C ayuda a producir colágeno. Come kiwi, brócoli o pimentón.",
+  "🍵 Té de manzanilla antes de dormir: antiinflamatorio y mejora el sueño.",
+  "📏 Fotografíate esta semana de frente y de perfil. Ver el progreso motiva enormemente.",
+];
+
+const EXERCISES = [
+  { name:"Cara de pescado", emoji:"🐟", zone:"Cachetes", duration:30, reps:null,
+    instruction:"Chupa las mejillas hacia adentro formando cara de pez. Mantén y aguanta.",
+    coach:"Succiona las mejillas completamente. Aguanta la posición mientras sientes el trabajo muscular en tus pómulos." },
+  { name:"Globo de aire", emoji:"🎈", zone:"Cachetes", duration:null, reps:10,
+    instruction:"Infla las mejillas con aire, muévelo de lado a lado como un globo.",
+    coach:"Infla bien las mejillas. Ahora mueve ese aire de mejilla en mejilla lentamente. Siente la tensión y el trabajo en cada lado." },
+  { name:"Vocales exageradas", emoji:"🗣️", zone:"General", duration:40, reps:null,
+    instruction:"Di A-E-I-O-U muy lentamente y exagerando cada movimiento.",
+    coach:"A... E... I... O... U... Exagera al máximo cada vocal. Siente cómo trabajan todos los músculos de tu cara juntos." },
+  { name:"Sonrisa extrema", emoji:"😁", zone:"Mandíbula", duration:null, reps:8,
+    instruction:"Sonríe lo más amplio posible mostrando todos los dientes. Aguanta 5 segundos.",
+    coach:"Sonríe de oreja a oreja. Aguanta 5 segundos completos. Siente la tensión en tu mandíbula y pómulos. ¡Ahí está el trabajo!" },
+  { name:"Mewing activo", emoji:"👅", zone:"Mandíbula / Papada", duration:45, reps:null,
+    instruction:"Toda la lengua pegada al paladar con presión. Dientes ligeramente juntos. Respira por la nariz.",
+    coach:"Pega TODA la lengua al paladar, no solo la punta. Siente la presión en todo el paladar. Esto remodela tu estructura ósea con el tiempo." },
+  { name:"Chin lift – Beso al techo", emoji:"💋", zone:"Papada", duration:null, reps:12,
+    instruction:"Mira al techo y lanza besos con fuerza al aire. Siente el cuello y papada tensar.",
+    coach:"Cabeza atrás, mira al techo. Ahora lanza besos fuertes hacia arriba. ¡Uno! Siente como tu papada se tensa con cada beso." },
+  { name:"Resistencia de mejillas", emoji:"✊", zone:"Cachetes", duration:null, reps:8,
+    instruction:"Infla una mejilla. Coloca tu mano y empuja. La mejilla resiste la presión.",
+    coach:"Infla una mejilla y coloca tu mano. Ahora empuja con la mano mientras la mejilla resiste. Este ejercicio de resistencia tona más rápido." },
+  { name:"Drenaje linfático facial", emoji:"🤲", zone:"Desinflame", duration:30, reps:null,
+    instruction:"Masajea con los dedos desde la oreja hacia el mentón con presión suave.",
+    coach:"Dedos detrás de las orejas. Desliza suavemente hacia el mentón con presión firme pero suave. Esto drena el líquido linfático que infla tu cara." },
+  { name:"Masaje de mandíbula", emoji:"💆", zone:"Definición", duration:30, reps:null,
+    instruction:"Usa los nudillos para masajear a lo largo de la línea mandibular.",
+    coach:"Con los nudillos, sigue tu línea mandibular desde la oreja hasta el mentón. Presión media. Esto estimula la circulación y define tu mandíbula." },
+  { name:"Kiss the sky", emoji:"🌟", zone:"Papada / Cuello", duration:null, reps:15,
+    instruction:"Boca en 'O', mira al techo y besa el aire con fuerza y lentitud.",
+    coach:"Boca en 'O' perfecta. Mira al techo. Ahora besa el aire lentamente. ¡Uno! Siente el cuello y la papada trabajar en cada repetición." },
+  { name:"Estiramiento lateral de cuello", emoji:"🦒", zone:"Cuello / Papada", duration:20, reps:null,
+    instruction:"Inclina la cabeza a un lado mientras el hombro opuesto baja. Alterna lados.",
+    coach:"Inclina la cabeza al lado derecho. Siente el estiramiento en el lado izquierdo del cuello. Ahora al otro lado. Libera la tensión que acumula papada." },
+  { name:"Soplador de velas", emoji:"🕯️", zone:"Cachetes", duration:null, reps:12,
+    instruction:"Sopla fuerte como si apagaras una vela lejana. Labios fruncidos.",
+    coach:"Junta los labios y sopla con toda tu fuerza. ¡Uno! Como si la vela estuviera muy lejos. Cada soplido trabaja directamente los músculos de tus cachetes." },
+];
+
+// Program: 100 days of exercises (cycles through sets)
+function getDayExercises(day) {
+  const phase = day <= 30 ? 1 : day <= 60 ? 2 : 3;
+  let sets;
+  if (phase === 1) sets = [[0,1,4,5,7,8],[2,3,4,9,10,11],[0,4,5,6,7,8],[1,2,3,9,11,4],[0,1,4,5,8,10]];
+  else if (phase === 2) sets = [[0,1,2,4,5,6,7,8],[3,4,5,9,10,11,0,1],[0,2,4,6,8,9,10,11],[1,3,4,5,7,8,11,0]];
+  else sets = [[0,1,2,3,4,5,6,7],[4,5,6,7,8,9,10,11],[0,2,4,6,8,10,11,3]];
+  const idx = (day-1) % sets.length;
+  return sets[idx].map(i => EXERCISES[i]);
+}
+
+function getPhaseName(day) {
+  if (day <= 30) return { name:"Activación Facial", sub:"Fase 1 · Aprende la técnica correcta", cls:"phase-1", badge:"🔵 FASE 1 – Activación" };
+  if (day <= 60) return { name:"Tonificación & Definición", sub:"Fase 2 · Más intensidad y resistencia", cls:"phase-2", badge:"🟡 FASE 2 – Tonificación" };
+  return { name:"Resultados & Mantenimiento", sub:"Fase 3 · Definición máxima", cls:"phase-3", badge:"🔴 FASE 3 – Definición" };
+}
+
+// ─────────────────────────────────────────────
+// STORAGE HELPERS
+// ─────────────────────────────────────────────
+function getAllUsers() { return JSON.parse(localStorage.getItem('ff_users') || '{}'); }
+function saveAllUsers(u) { localStorage.setItem('ff_users', JSON.stringify(u)); }
+function getCurrentUser() { return localStorage.getItem('ff_current') || null; }
+function setCurrentUser(u) { localStorage.setItem('ff_current', u); }
+function getUserData(username) {
+  const users = getAllUsers();
+  return users[username] || null;
+}
+function saveUserData(username, data) {
+  const users = getAllUsers();
+  users[username] = data;
+  saveAllUsers(users);
+}
+function freshUserData(name) {
+  return { name, currentDay:1, completedDays:[], streak:0, lastCompletedDate:null, startDate:new Date().toDateString() };
+}
+
+// ─────────────────────────────────────────────
+// AUTH
+// ─────────────────────────────────────────────
+function switchTab(tab) {
+  document.getElementById('form-login').style.display = tab==='login' ? 'block' : 'none';
+  document.getElementById('form-register').style.display = tab==='register' ? 'block' : 'none';
+  document.getElementById('tab-login').classList.toggle('active', tab==='login');
+  document.getElementById('tab-register').classList.toggle('active', tab==='register');
+}
+
+function doLogin() {
+  const user = document.getElementById('login-user').value.trim().toLowerCase();
+  const pass = document.getElementById('login-pass').value;
+  const err = document.getElementById('login-error');
+  if (!user || !pass) { err.textContent = 'Completa todos los campos.'; return; }
+  const users = getAllUsers();
+  if (!users[user]) { err.textContent = 'Usuario no encontrado. ¿Ya tienes cuenta?'; return; }
+  if (users[user].password !== btoa(pass)) { err.textContent = 'Contraseña incorrecta.'; return; }
+  err.textContent = '';
+  setCurrentUser(user);
+  initApp();
+}
+
+function doRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const user = document.getElementById('reg-user').value.trim().toLowerCase();
+  const pass = document.getElementById('reg-pass').value;
+  const err = document.getElementById('reg-error');
+  if (!name || !user || !pass) { err.textContent = 'Completa todos los campos.'; return; }
+  if (user.length < 3) { err.textContent = 'El usuario debe tener al menos 3 caracteres.'; return; }
+  if (pass.length < 3) { err.textContent = 'La contraseña debe tener al menos 3 caracteres.'; return; }
+  const users = getAllUsers();
+  if (users[user]) { err.textContent = 'Ese usuario ya existe. Intenta con otro.'; return; }
+  const data = freshUserData(name);
+  data.password = btoa(pass);
+  users[user] = data;
+  saveAllUsers(users);
+  err.textContent = '';
+  document.getElementById('login-user').value = user;
+  document.getElementById('login-pass').value = pass;
+  switchTab('login');
+  document.getElementById('login-error').textContent = '¡Cuenta creada! Ahora inicia sesión.';
+  document.getElementById('login-error').style.color = 'var(--green)';
+}
+
+function doLogout() {
+  localStorage.removeItem('ff_current');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('page-auth').classList.add('active');
+  resetTraining();
+}
+
+// ─────────────────────────────────────────────
+// APP INIT
+// ─────────────────────────────────────────────
+function initApp() {
+  document.getElementById('page-auth').classList.remove('active');
+  document.getElementById('app').style.display = 'block';
+  updateStreak();
+  refreshDash();
+  showPage('dash');
+  buildTipsPage();
+  buildPhotosPage();
+}
+
+function updateStreak() {
+  const username = getCurrentUser();
+  const data = getUserData(username);
+  if (!data) return;
+  const today = new Date().toDateString();
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  if (data.lastCompletedDate === today) return; // already handled
+  if (data.lastCompletedDate && data.lastCompletedDate !== yesterday && data.lastCompletedDate !== today) {
+    data.streak = 0;
+    saveUserData(username, data);
+  }
+}
+
+function refreshDash() {
+  const username = getCurrentUser();
+  const data = getUserData(username);
+  if (!data) return;
+  document.getElementById('dash-name').textContent = data.name;
+  document.getElementById('streak-val').textContent = (data.streak || 0) + ' días';
+  const day = data.currentDay;
+  document.getElementById('dash-day-num').innerHTML = `${day} <span>/ 100</span>`;
+  const pct = Math.round(((day-1)/100)*100);
+  document.getElementById('dash-bar').style.width = pct + '%';
+  document.getElementById('dash-pct').textContent = pct + '% completado';
+  const phase = getPhaseName(day);
+  const pb = document.getElementById('dash-phase');
+  pb.textContent = phase.badge;
+  pb.className = 'phase-badge ' + phase.cls;
+  // Tip
+  const tipIdx = (data.completedDays.length || 0) % TIPS.length;
+  document.getElementById('dash-tip').textContent = TIPS[tipIdx];
+  // Start button
+  const today = new Date().toDateString();
+  const done = data.lastCompletedDate === today;
+  const btn = document.getElementById('btn-start-today');
+  btn.disabled = done || day > 100;
+  if (done) btn.querySelector('.sub').textContent = '✅ ¡Ya entrenaste hoy!';
+  else if (day > 100) btn.querySelector('.sub').textContent = '🏆 ¡Programa completado!';
+  else btn.querySelector('.sub').textContent = `Día ${day} · ${day<=30?'~10':day<=60?'~15':'~12'} minutos`;
+  // Calendar
+  buildCalendar(data);
+  // Progress page
+  refreshProgress(data);
+}
+
+function buildCalendar(data) {
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+  const today = new Date().toDateString();
+  for (let i=1; i<=100; i++) {
+    const d = document.createElement('div');
+    d.className = 'cal-day';
+    d.textContent = i;
+    if (data.completedDays.includes(i)) d.classList.add('done');
+    else if (i === data.currentDay) d.classList.add('today');
+    else if (i < data.currentDay) d.classList.add('missed');
+    else d.classList.add('future');
+    grid.appendChild(d);
+  }
+}
+
+function refreshProgress(data) {
+  document.getElementById('stat-completed').textContent = data.completedDays.length;
+  document.getElementById('stat-streak').textContent = (data.streak||0) + ' 🔥';
+  const pct = Math.round(((data.currentDay-1)/100)*100);
+  document.getElementById('stat-pct').textContent = pct + '%';
+  document.getElementById('stat-left').textContent = Math.max(0, 100 - (data.currentDay-1));
+  // Week
+  buildWeek(data);
+  // History
+  const hist = document.getElementById('history-list');
+  hist.innerHTML = '';
+  const days = [...data.completedDays].reverse().slice(0,10);
+  if (days.length === 0) { hist.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px">Aún no has completado ningún día.</div>'; return; }
+  days.forEach(d => {
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    const phase = d<=30?'Fase 1':d<=60?'Fase 2':'Fase 3';
+    item.innerHTML = `<div class="history-day">Día ${d} <span style="font-size:11px;color:var(--muted);font-weight:400">· ${phase}</span></div><div class="history-status">✅ Completado</div>`;
+    hist.appendChild(item);
+  });
+}
+
+function buildWeek(data) {
+  const labels = document.getElementById('week-labels');
+  const days = document.getElementById('week-days');
+  labels.innerHTML = '';
+  days.innerHTML = '';
+  const dayNames = ['L','M','X','J','V','S','D'];
+  dayNames.forEach(n => {
+    const l = document.createElement('div');
+    l.className = 'week-label';
+    l.textContent = n;
+    labels.appendChild(l);
+  });
+  const today = new Date();
+  const dow = (today.getDay()+6)%7;
+  for (let i=dow; i>=0; i--) {
+    const d = new Date(today - i*86400000);
+    const dayNum = data.completedDays.find(x => {
+      const target = new Date(data.startDate);
+      target.setDate(target.getDate() + x - 1);
+      return target.toDateString() === d.toDateString();
+    });
+    const el = document.createElement('div');
+    el.className = 'week-day';
+    el.textContent = d.getDate();
+    if (i===0) el.classList.add('today');
+    else if (dayNum) el.classList.add('done');
+    else el.classList.add('empty');
+    days.appendChild(el);
+  }
+  for (let i=1; i<=6-dow; i++) {
+    const el = document.createElement('div');
+    el.className = 'week-day empty';
+    const fd = new Date(today.getTime() + i*86400000);
+    el.textContent = fd.getDate();
+    days.appendChild(el);
+  }
+}
+
+// ─────────────────────────────────────────────
+// TIPS PAGE
+// ─────────────────────────────────────────────
+function buildTipsPage() {
+  const list = document.getElementById('full-tip-list');
+  list.innerHTML = '';
+  TIPS.forEach(t => {
+    const emoji = t[0];
+    const text = t.slice(2);
+    const item = document.createElement('div');
+    item.className = 'tip-item';
+    item.innerHTML = `<div class="tip-icon">${emoji}</div><div class="tip-content"><p>${text}</p></div>`;
+    list.appendChild(item);
+  });
+  const exList = document.getElementById('ex-guide-list');
+  exList.innerHTML = '';
+  EXERCISES.forEach(e => {
+    const item = document.createElement('div');
+    item.className = 'tip-item';
+    item.innerHTML = `<div class="tip-icon">${e.emoji}</div><div class="tip-content"><h4>${e.name} <span style="font-size:10px;color:var(--accent);font-weight:400">· ${e.zone}</span></h4><p>${e.instruction}</p><p style="margin-top:4px;font-size:11px;color:var(--accent2)">${e.reps ? e.reps+' reps' : e.duration+'s de trabajo'}</p></div>`;
+    exList.appendChild(item);
+  });
+}
+
+// ─────────────────────────────────────────────
+// PHOTOS PAGE
+// ─────────────────────────────────────────────
+let selectedPhotoSlot = null;
+function buildPhotosPage() {
+  const grid = document.getElementById('photo-grid');
+  grid.innerHTML = '';
+  const slots = ['Día 1 – Antes','Día 30','Día 60','Día 100 – Después'];
+  const keys = ['photo_d1','photo_d30','photo_d60','photo_d100'];
+  const username = getCurrentUser();
+  const data = getUserData(username) || {};
+  slots.forEach((label, i) => {
+    const slot = document.createElement('div');
+    slot.className = 'photo-slot';
+    const saved = data[keys[i]];
+    if (saved) {
+      slot.innerHTML = `<img src="${saved}"><div class="photo-label" style="position:absolute;bottom:8px;background:rgba(0,0,0,0.5);padding:2px 8px;border-radius:999px;font-size:11px;color:#fff">${label}</div>`;
+    } else {
+      slot.innerHTML = `<div class="placeholder">📷</div><div class="photo-label">${label}</div>`;
+    }
+    slot.onclick = () => {
+      selectedPhotoSlot = keys[i];
+      document.getElementById('photo-input').click();
+    };
+    grid.appendChild(slot);
+  });
+  document.getElementById('photo-input').onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const username = getCurrentUser();
+      const data = getUserData(username);
+      data[selectedPhotoSlot] = ev.target.result;
+      saveUserData(username, data);
+      buildPhotosPage();
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+}
+
+// ─────────────────────────────────────────────
+// PAGE NAVIGATION
+// ─────────────────────────────────────────────
+function showPage(id) {
+  ['dash','train','progress','tips','photos'].forEach(p => {
+    document.getElementById('page-'+p).classList.remove('active');
+    document.getElementById('nav-'+p).classList.remove('active');
+  });
+  document.getElementById('page-'+id).classList.add('active');
+  document.getElementById('nav-'+id).classList.add('active');
+  if (id === 'progress') refreshDash();
+  if (id === 'photos') buildPhotosPage();
+}
+
+function goToTraining() {
+  const username = getCurrentUser();
+  const data = getUserData(username);
+  const today = new Date().toDateString();
+  if (data.lastCompletedDate === today) return;
+  showPage('train');
+  loadTrainingDay(data.currentDay);
+}
+
+// ─────────────────────────────────────────────
+// TRAINING ENGINE
+// ─────────────────────────────────────────────
+let trainingState = {
+  exercises: [],
+  currentIdx: 0,
+  timer: null,
+  timeLeft: 0,
+  totalTime: 0,
+  running: false,
+  paused: false,
+  restMode: false,
+  restTimer: null,
+};
+const REST_DURATION = 8;
+
+function loadTrainingDay(day) {
+  resetTraining();
+  const exs = getDayExercises(day);
+  trainingState.exercises = exs;
+  trainingState.currentIdx = 0;
+  const phase = getPhaseName(day);
+  document.getElementById('train-day-label').textContent = `DÍA ${day}`;
+  document.getElementById('train-phase-name').textContent = phase.name;
+  document.getElementById('train-phase-sub').textContent = phase.sub;
+  buildExDots(exs);
+  loadExercise(0);
+}
+
+function buildExDots(exs) {
+  const dots = document.getElementById('ex-dots');
+  dots.innerHTML = '';
+  exs.forEach((_,i) => {
+    const d = document.createElement('div');
+    d.className = 'ex-dot' + (i===0?' active':'');
+    d.id = 'dot-'+i;
+    dots.appendChild(d);
+  });
+}
+
+function loadExercise(idx) {
+  const ex = trainingState.exercises[idx];
+  trainingState.currentIdx = idx;
+  trainingState.running = false;
+  trainingState.paused = false;
+  document.getElementById('rest-card').style.display = 'none';
+  document.getElementById('ex-card').style.display = 'flex';
+  document.getElementById('ex-emoji').textContent = ex.emoji;
+  document.getElementById('ex-name').textContent = ex.name;
+  document.getElementById('ex-zone').textContent = ex.zone;
+  document.getElementById('ex-instruction').textContent = ex.instruction;
+  document.getElementById('coach-text').textContent = ex.coach;
+  document.querySelectorAll('.ex-dot').forEach((d,i) => {
+    d.className = 'ex-dot' + (i<idx?' done':i===idx?' active':'');
+  });
+  if (ex.duration) {
+    document.getElementById('timer-section').style.display = 'block';
+    document.getElementById('reps-section').style.display = 'none';
+    setTimerDisplay(ex.duration, ex.duration);
+  } else {
+    document.getElementById('timer-section').style.display = 'none';
+    document.getElementById('reps-section').style.display = 'block';
+    document.getElementById('reps-count').textContent = ex.reps + ' REPS';
+  }
+  document.getElementById('btn-ctrl-start').disabled = false;
+  document.getElementById('btn-ctrl-pause').disabled = true;
+  document.getElementById('btn-ctrl-next').disabled = true;
+  document.getElementById('btn-ctrl-start').textContent = '▶ Iniciar';
+}
+
+function setTimerDisplay(seconds, total) {
+  const arc = document.getElementById('timer-arc');
+  const circ = 439.8;
+  const offset = circ * (1 - seconds/total);
+  arc.style.strokeDashoffset = offset;
+  const m = Math.floor(seconds/60);
+  const s = seconds%60;
+  document.getElementById('timer-display').textContent = m + ':' + String(s).padStart(2,'0');
+}
+
+function ctrlStart() {
+  const ex = trainingState.exercises[trainingState.currentIdx];
+  if (trainingState.paused) {
+    trainingState.paused = false;
+    document.getElementById('btn-ctrl-start').textContent = '▶ Iniciando...';
+    document.getElementById('btn-ctrl-start').disabled = true;
+    document.getElementById('btn-ctrl-pause').disabled = false;
+    if (ex.duration) runTimer(trainingState.timeLeft, ex.duration);
+    return;
+  }
+  trainingState.running = true;
+  document.getElementById('btn-ctrl-start').disabled = true;
+  document.getElementById('btn-ctrl-pause').disabled = false;
+  document.getElementById('btn-ctrl-next').disabled = false;
+  if (ex.duration) {
+    trainingState.timeLeft = ex.duration;
+    trainingState.totalTime = ex.duration;
+    runTimer(ex.duration, ex.duration);
+  } else {
+    document.getElementById('coach-text').textContent = '¡Realiza las ' + ex.reps + ' repeticiones! Cuando termines, pulsa Siguiente.';
+  }
+}
+
+function runTimer(seconds, total) {
+  clearInterval(trainingState.timer);
+  trainingState.timeLeft = seconds;
+  setTimerDisplay(seconds, total);
+  trainingState.timer = setInterval(() => {
+    if (trainingState.paused) return;
+    trainingState.timeLeft--;
+    setTimerDisplay(trainingState.timeLeft, total);
+    if (trainingState.timeLeft <= 3 && trainingState.timeLeft > 0) {
+      beep(440, 0.1);
+      document.getElementById('coach-text').textContent = '¡' + trainingState.timeLeft + '...!';
+    }
+    if (trainingState.timeLeft <= 0) {
+      clearInterval(trainingState.timer);
+      beep(880, 0.3);
+      ctrlNext();
+    }
+  }, 1000);
+}
+
+function ctrlPause() {
+  trainingState.paused = !trainingState.paused;
+  document.getElementById('btn-ctrl-pause').textContent = trainingState.paused ? '▶ Reanudar' : '⏸ Pausar';
+  document.getElementById('btn-ctrl-start').disabled = !trainingState.paused;
+  document.getElementById('btn-ctrl-start').textContent = '▶ Reanudar';
+  if (!trainingState.paused) {
+    const ex = trainingState.exercises[trainingState.currentIdx];
+    if (ex.duration) runTimer(trainingState.timeLeft, ex.duration);
+  }
+}
+
+function ctrlNext() {
+  clearInterval(trainingState.timer);
+  trainingState.paused = false;
+  const next = trainingState.currentIdx + 1;
+  if (next >= trainingState.exercises.length) {
+    completeDay();
+    return;
+  }
+  // Show rest
+  document.getElementById('rest-card').style.display = 'block';
+  document.getElementById('ex-card').style.display = 'none';
+  document.getElementById('timer-section').style.display = 'block';
+  document.getElementById('reps-section').style.display = 'none';
+  const nextEx = trainingState.exercises[next];
+  document.getElementById('rest-next-label').textContent = `Siguiente: ${nextEx.emoji} ${nextEx.name}`;
+  document.getElementById('btn-ctrl-start').disabled = true;
+  document.getElementById('btn-ctrl-pause').disabled = true;
+  document.getElementById('btn-ctrl-next').disabled = true;
+  document.getElementById('coach-text').textContent = '😮‍💨 Toma aire, hidratate y prepárate para el siguiente ejercicio...';
+  let restTime = REST_DURATION;
+  setTimerDisplay(restTime, REST_DURATION);
+  const arc = document.getElementById('timer-arc');
+  arc.style.stroke = 'var(--green)';
+  const restInt = setInterval(() => {
+    restTime--;
+    setTimerDisplay(restTime, REST_DURATION);
+    if (restTime <= 0) {
+      clearInterval(restInt);
+      arc.style.stroke = 'var(--accent)';
+      loadExercise(next);
+    }
+  }, 1000);
+}
+
+function completeDay() {
+  const username = getCurrentUser();
+  const data = getUserData(username);
+  const today = new Date().toDateString();
+  if (!data.completedDays.includes(data.currentDay)) {
+    data.completedDays.push(data.currentDay);
+  }
+  const yesterday = new Date(Date.now()-86400000).toDateString();
+  if (data.lastCompletedDate === yesterday) {
+    data.streak = (data.streak||0) + 1;
+  } else {
+    data.streak = 1;
+  }
+  data.lastCompletedDate = today;
+  if (data.currentDay < 100) data.currentDay++;
+  saveUserData(username, data);
+  showCompleteOverlay(data.currentDay - 1);
+  refreshDash();
+}
+
+function showCompleteOverlay(day) {
+  const overlay = document.getElementById('complete-overlay');
+  overlay.classList.add('show');
+  document.getElementById('complete-title').textContent = `¡Día ${day} Completado! 🏆`;
+  document.getElementById('complete-sub').textContent = day >= 100
+    ? '¡INCREÍBLE! Completaste los 100 días. Tu disciplina ha transformado tu rostro.'
+    : `${100-day} días restantes para tu mejor versión. ¡Mañana volvemos más fuertes!`;
+  spawnConfetti();
+}
+
+function closeComplete() {
+  document.getElementById('complete-overlay').classList.remove('show');
+  document.getElementById('confetti-container').innerHTML = '';
+  showPage('progress');
+  resetTraining();
+}
+
+function resetTraining() {
+  clearInterval(trainingState.timer);
+  trainingState = { exercises:[], currentIdx:0, timer:null, timeLeft:0, totalTime:0, running:false, paused:false };
+  document.getElementById('timer-arc').style.stroke = 'var(--accent)';
+}
+
+// ─────────────────────────────────────────────
+// CONFETTI
+// ─────────────────────────────────────────────
+function spawnConfetti() {
+  const container = document.getElementById('confetti-container');
+  container.innerHTML = '';
+  const colors = ['#c77dff','#7b2ff7','#4cc9f0','#ffd166','#06d6a0','#ef476f'];
+  for (let i=0; i<60; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    p.style.left = Math.random()*100 + 'vw';
+    p.style.background = colors[Math.floor(Math.random()*colors.length)];
+    p.style.width = (8+Math.random()*8) + 'px';
+    p.style.height = (8+Math.random()*8) + 'px';
+    p.style.borderRadius = Math.random()>0.5 ? '50%' : '2px';
+    p.style.animationDuration = (1.5+Math.random()*2) + 's';
+    p.style.animationDelay = Math.random()*1.5 + 's';
+    container.appendChild(p);
+  }
+}
+
+// ─────────────────────────────────────────────
+// BEEP
+// ─────────────────────────────────────────────
+function beep(freq=880, dur=0.2) {
+  try {
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+dur);
+    osc.start(); osc.stop(ctx.currentTime+dur);
+  } catch(e) {}
+}
+
+// ─────────────────────────────────────────────
+// AUTO LOGIN
+// ─────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const cur = getCurrentUser();
+  if (cur && getUserData(cur)) {
+    initApp();
+  }
+});
+</script>
+</body>
+</html>
